@@ -1,14 +1,16 @@
 import streamlit as st
+from hydralit import HydraHeadApp
 
 
-class HomeApp:
+class HomeApp(HydraHeadApp):
     """Very small home page for MediPal.
 
     Provides a `run()` method so it can be used directly or inside a Hydralit
     app as the home screen.
     """
 
-    def __init__(self, title: str = "Home"):
+    def __init__(self, title: str = "Home", **kwargs):
+        self.__dict__.update(kwargs)
         self.title = title
 
     def run(self):
