@@ -173,5 +173,3 @@ class MedicationTracker(HydraHeadApp):
                 st.info("👍 Good medication adherence")
             else:
                 st.warning("⚠️ Consider medication reminders to improve adherence")
-
-        return

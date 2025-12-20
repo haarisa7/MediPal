@@ -19,25 +19,28 @@ if __name__ == "__main__":
 
     app.add_app("Home", icon="🏠", app=apps.HomeApp(title='Home'),is_home=True)
     app.add_app("Medication Tracker",icon="📈", app=apps.MedicationTracker(title="Medication Tracker"))
+    app.add_app("Login", icon="🔐", app=apps.LoginApp(title="Login"))
+    app.add_app("Create Account", icon="📝", app=apps.SignUpApp(title="Create Account"))
+    app.add_app("Account", icon="🧑‍💼", app=apps.AccountApp(title="Account"))
 
     app.enable_guest_access()
 
-    user_access_level, username = app.check_access()
+    # Check if user is logged in from session state
+    logged_in = st.session_state.get('logged_in', False)
 
-    if user_access_level > 1:
+    if logged_in:
+        # Show only Home and Medication Tracker when logged in
         complex_nav = {
             'Home': ['Home'],
             'Medication Tracker': ['Medication Tracker'],
-        }
-    elif user_access_level == 1:
-        complex_nav = {
-            'Home': ['Home'],
-            'Medication Tracker': ['Medication Tracker'],
-
+            'Account': ['Account'],
         }
     else:
+        # Show only Home, Login, and Create Account when not logged in
         complex_nav = {
             'Home': ['Home'],
+            'Login': ['Login'],
+            'Create Account': ['Create Account'],
         }
 
     # and finally just the entire app and all the children.
