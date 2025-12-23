@@ -23,16 +23,30 @@ if __name__ == "__main__":
     app.add_app("Create Account", icon="📝", app=apps.SignUpApp(title="Create Account"))
     app.add_app("Account", icon="🧑‍💼", app=apps.AccountApp(title="Account"))
 
-    app.enable_guest_access()
-
-    # Check if user is logged in from session state
+    # Notification badge logic
+    notification_count = 0
     logged_in = st.session_state.get('logged_in', False)
+    if logged_in:
+        from data.patient_profile import get_user_role
+        user_id = st.session_state.get('current_id')
+        role = get_user_role(user_id) if user_id else None
+        if role == 0:
+            from data.medication_requests import get_pending_requests_for_patient
+            notification_count = len(get_pending_requests_for_patient(user_id))
+            last_seen = st.session_state.get('last_seen_notification_count', 0)
+            if notification_count > last_seen:
+                st.toast(f"You have {notification_count} new medication request(s)!", icon="🔔")
+            st.session_state['last_seen_notification_count'] = notification_count
+    # Add Notifications tab with badge
+    notifications_key = "Notifications"
+    notifications_label = f"Notifications{' [' + str(notification_count) + ']' if notification_count > 0 else ''}"
+    app.add_app(notifications_key, icon="🔔", app=apps.NotificationsApp(title=notifications_label))
 
     if logged_in:
-        # Show only Home and Medication Tracker when logged in
         complex_nav = {
             'Home': ['Home'],
             'Medication Tracker': ['Medication Tracker'],
+            notifications_key: ['Notifications'],
             'Account': ['Account'],
         }
     else:

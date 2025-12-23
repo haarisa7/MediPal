@@ -1,7 +1,7 @@
 import streamlit as st
 from hydralit import HydraHeadApp
 import time
-from auth.auth_service import register_user as auth_register_user
+from auth.auth_service import register_user as auth_register_user, login_user
 
 
 class SignUpApp(HydraHeadApp):
@@ -24,6 +24,9 @@ class SignUpApp(HydraHeadApp):
         login_form = parent_container.form(key="login_form")
 
         form_state = {}
+        form_state['first_name'] = login_form.text_input('First Name', key='reg_first_name')
+        form_state['last_name'] = login_form.text_input('Last Name', key='reg_last_name')
+        form_state['date_of_birth'] = login_form.date_input('Date of Birth', key='reg_dob')
         form_state['email'] = login_form.text_input('Email', key='reg_email')
         form_state['password'] = login_form.text_input('Password', type="password")
         form_state['password2'] = login_form.text_input('Confirm Password', type="password")
@@ -43,19 +46,43 @@ class SignUpApp(HydraHeadApp):
             role_num = role_map.get(role_label.strip().lower(), 0)
 
             success = auth_register_user(
-                form_data['email'], form_data['password'], role_num
+                form_data['email'], form_data['password'], role_num,
+                form_data['first_name'], form_data['last_name'], form_data['date_of_birth']
             )
             if success:
-                with st.spinner("🤓 now redirecting to login...."):
-                    time.sleep(2)
-
-                    # access control uses an int value to allow for levels of permission that can be set for each user
-                    self.set_access(0, None)
-
-                    # Redirect explicitly to the Login page so the user can sign in
+                # Automatically log the user in after registration
+                user = login_user(form_data['email'], form_data['password'])
+                if user:
+                    from auth.auth_service import get_user_by_email
+                    db_user = get_user_by_email(form_data['email'])
+                    user_id = db_user['user_id'] if db_user else user['user_id']
                     try:
-                        self.do_redirect("Login")
+                        user_id = int(user_id)
                     except Exception:
-                        self.do_redirect()
+                        user_id = None
+                    st.session_state.logged_in = True
+                    st.session_state.current_id = user_id
+                    with st.spinner("🤓 Welcome! Setting up your account...."):
+                        time.sleep(1)
+                        try:
+                            self.set_access(2, form_data['email'])
+                        except Exception:
+                            pass
+                        msg_container.success("✔️ Account created and logged in!")
+                        # Redirect to Medication Tracker or Home
+                        try:
+                            self.do_redirect("Medication Tracker")
+                        except TypeError:
+                            try:
+                                import apps
+                                apps.MedicationTracker(title="Medication Tracker").run()
+                                st.rerun()
+                            except Exception:
+                                try:
+                                    self.do_redirect()
+                                except Exception:
+                                    st.rerun()
+                else:
+                    msg_container.error('Account created but login failed — please try logging in manually.')
             else:
                 msg_container.error('Registration failed — please try again or contact support.')

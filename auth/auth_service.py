@@ -1,7 +1,7 @@
 import bcrypt
 from db.database import get_connection
 
-def register_user(email: str, password: str, role: int) -> bool:
+def register_user(email: str, password: str, role: int, first_name: str, last_name: str, date_of_birth) -> bool:
     hashed_pw = bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt()
@@ -13,10 +13,10 @@ def register_user(email: str, password: str, role: int) -> bool:
     try:
         cur.execute(
             """
-            INSERT INTO users (email, password, role)
-            VALUES (%s, %s, %s)
+            INSERT INTO users (email, password, role, first_name, last_name, date_of_birth)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (email, hashed_pw, role)
+            (email, hashed_pw, role, first_name, last_name, date_of_birth)
         )
         conn.commit()
         return True
@@ -38,7 +38,7 @@ def login_user(email: str, password: str):
     try:
         cur.execute(
             """
-            SELECT user_id, password, role
+            SELECT user_id, password, role, first_name, last_name, date_of_birth
             FROM users
             WHERE email = %s
             """,
@@ -49,7 +49,7 @@ def login_user(email: str, password: str):
         if user is None:
             return None
 
-        user_id, stored_hash, role = user
+        user_id, stored_hash, role, first_name, last_name, date_of_birth = user
 
         if bcrypt.checkpw(
             password.encode("utf-8"),
@@ -58,7 +58,10 @@ def login_user(email: str, password: str):
             return {
                 "user_id": user_id,
                 "email": email,
-                "role": role
+                "role": role,
+                "first_name": first_name,
+                "last_name": last_name,
+                "date_of_birth": date_of_birth,
             }
 
         return None
@@ -75,7 +78,7 @@ def get_user_by_email(email: str):
     try:
         cur.execute(
             """
-            SELECT user_id, email, role
+            SELECT user_id, email, role, first_name, last_name, date_of_birth
             FROM users
             WHERE email = %s
             """,
@@ -84,8 +87,15 @@ def get_user_by_email(email: str):
         row = cur.fetchone()
         if row is None:
             return None
-        user_id, email, role = row
-        return {"user_id": user_id, "email": email, "role": role}
+        user_id, email, role, first_name, last_name, date_of_birth = row
+        return {
+            "user_id": user_id,
+            "email": email,
+            "role": role,
+            "first_name": first_name,
+            "last_name": last_name,
+            "date_of_birth": date_of_birth,
+        }
     finally:
         cur.close()
         conn.close()
@@ -98,7 +108,7 @@ def get_user_by_id(user_id: int):
     try:
         cur.execute(
             """
-            SELECT user_id, email, role
+            SELECT user_id, email, role, first_name, last_name, date_of_birth
             FROM users
             WHERE user_id = %s
             """,
@@ -107,8 +117,15 @@ def get_user_by_id(user_id: int):
         row = cur.fetchone()
         if row is None:
             return None
-        user_id, email, role = row
-        return {"user_id": user_id, "email": email, "role": role}
+        user_id, email, role, first_name, last_name, date_of_birth = row
+        return {
+            "user_id": user_id,
+            "email": email,
+            "role": role,
+            "first_name": first_name,
+            "last_name": last_name,
+            "date_of_birth": date_of_birth,
+        }
     finally:
         cur.close()
         conn.close()
@@ -132,6 +149,30 @@ def update_user_email(user_id: int, new_email: str) -> bool:
     except Exception as e:
         conn.rollback()
         print("update_user_email error:", e)
+        return False
+    finally:
+        cur.close()
+        conn.close()
+
+
+def update_user_profile(user_id: int, first_name: str, last_name: str, date_of_birth) -> bool:
+    """Update the user's profile fields (first name, last name, date_of_birth)."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE users
+            SET first_name = %s, last_name = %s, date_of_birth = %s
+            WHERE user_id = %s
+            """,
+            (first_name, last_name, date_of_birth, user_id)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        print("update_user_profile error:", e)
         return False
     finally:
         cur.close()

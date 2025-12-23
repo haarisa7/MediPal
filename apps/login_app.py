@@ -36,34 +36,37 @@ class LoginApp(HydraHeadApp):
 
     def _do_login(self, form_data, msg_container) -> None:
         user = login_user(form_data['email'], form_data['password'])
-
         if user:
+            from auth.auth_service import get_user_by_email
+            db_user = get_user_by_email(form_data['email'])
+            user_id = db_user['user_id'] if db_user else user['user_id']
+            try:
+                user_id = int(user_id)
+            except Exception:
+                user_id = None
             st.session_state.logged_in = True
-            st.session_state.current_user = user
+            st.session_state.current_id = user_id
             # keep previous access pattern
             try:
                 self.set_access(2, form_data['email'])
             except Exception:
                 pass
             msg_container.success("✔️ Login success")
-            with st.spinner("🤓 now redirecting to Medication Tracker...."):
+            with st.spinner("🤓 now redirecting to Home...."):
                 try:
-                    # Try to tell Hydralit to redirect to a specific app
-                    self.do_redirect("Medication Tracker")
+                    self.do_redirect("Home")
                 except TypeError:
                     try:
-                        # Fallback: import and run the MedicationTracker app directly
                         import apps
-                        apps.MedicationTracker(title="Medication Tracker").run()
-                        st.experimental_rerun()
+                        apps.HomeApp(title="Home").run()
+                        st.rerun()
                     except Exception:
-                        # Final fallback: generic redirect
                         try:
                             self.do_redirect()
                         except Exception:
-                            st.experimental_rerun()
+                            st.rerun()
         else:
             self.session_state.allow_access = 0
-            self.session_state.current_user = None
+            self.session_state.current_id = None
             msg_container.error("❌ Login unsuccessful, 😕 please check your username and password and try again.")
 
