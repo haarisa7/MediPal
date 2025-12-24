@@ -1,0 +1,133 @@
+/* Add padding to bottom of all screens */
+.main .block-container {
+    padding-bottom: 5rem !important;
+}
+
+/* Ensure content has breathing room */
+section[data-testid="stAppViewContainer"] {
+    padding-bottom: 3rem !important;
+}
+
+/* Medication Tracker - Add/Edit Buttons - Only target buttons with specific keys */
+button[key*="add_medication"],
+button[key*="edit_medication"] {
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+button[key*="add_medication"] {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+}
+
+button[key*="add_medication"]:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+button[key*="edit_medication"] {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+}
+
+button[key*="edit_medication"]:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Medication Cards - Taken Button (Green) - Only in medication tracker context */
+[data-testid="stVerticalBlock"]:has(button[key*="taken_"]) div[data-testid="column"]:nth-child(1) button,
+button[key*="taken_"] {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-testid="stVerticalBlock"]:has(button[key*="taken_"]) div[data-testid="column"]:nth-child(1) button:hover,
+button[key*="taken_"]:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Medication Cards - Missed Button (Red) - Only in medication tracker context */
+[data-testid="stVerticalBlock"]:has(button[key*="missed_"]) div[data-testid="column"]:nth-child(2) button,
+button[key*="missed_"] {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+[data-testid="stVerticalBlock"]:has(button[key*="missed_"]) div[data-testid="column"]:nth-child(2) button:hover,
+button[key*="missed_"]:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Side Effect Cards - Common, Uncommon, Rare Effect Buttons */
+.common-effect-btn {
+    background-color: #ffffff !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin: 4px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.common-effect-btn:hover {
+    background-color: #f3f4f6 !important;
+    border-color: #9ca3af !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-1px) !important;
+}
+
+.uncommon-effect-btn {
+    background-color: #fffbeb !important;
+    color: #92400e !important;
+    border: 1px solid #fbbf24 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin: 4px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.uncommon-effect-btn:hover {
+    background-color: #fef3c7 !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.rare-effect-btn {
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1px solid #f87171 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin: 4px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.rare-effect-btn:hover {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 2px 8px rgba(248, 113, 113, 0.3) !important;
+    transform: translateY(-1px) !important;
+}

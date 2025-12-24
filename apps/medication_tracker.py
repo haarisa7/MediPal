@@ -9,13 +9,7 @@ from data.patient_medications import (
     get_active_patient_medications,
     get_inactive_patient_medications
 )
-from data.medications import (
-    get_enhanced_medications,
-    get_adherence_stats,
-    get_drugs_by_search,
-    get_drug_id_by_name,
-    get_drug_display_name
-)
+
 from components.medication_card import render_medication_card
 from data.patient_profile import get_patient_profile
 from data.medication_log import log_missed_intakes_for_day, get_today_intake_status
@@ -66,11 +60,6 @@ class MedicationTracker(HydraHeadApp):
             st.warning("No patient selected. Clinicians must authorize a patient in Home tab.")
             return
 
-        # Manual end-of-day missed meds logging button (for testing/admin)
-        if st.button("Log Missed Medications for Today (Admin)"):
-            user_id = self._resolve_user_id()
-            count = log_missed_intakes_for_day(user_id)
-            st.success(f"{count} missed medications logged for today.")
         # Show DB error if present
         if st.session_state.get('db_insert_error'):
             st.error(f"Database Error: {st.session_state['db_insert_error']}")
@@ -78,11 +67,7 @@ class MedicationTracker(HydraHeadApp):
 
         # --- Edit medication UI (overlay component) ---
         from components.edit_medication import show_edit_medication_overlay
-        if not st.session_state.get('show_edit_med'):
-            if st.button('✏️ Edit Medication'):
-                st.session_state['show_edit_med'] = True
         if st.session_state.get('show_edit_med'):
-            patient_id = self._resolve_patient_id()
             show_edit_medication_overlay(patient_id)
             return
 
@@ -94,12 +79,22 @@ class MedicationTracker(HydraHeadApp):
         except Exception:
             pass
 
-        st.title("💊 Medication Tracker")
-
-        # --- Add medication UI (overlay component) ---
+        # --- Add/Edit medication buttons in header ---
         from components.add_medication_modal import show_add_medication_overlay
-        if st.button('➕ Add Medication'):
-            st.session_state['show_add_med'] = True
+        
+        col_title, col_btn1, col_btn2 = st.columns([2.5, 1, 1])
+        with col_title:
+            st.title("💊 Medication Tracker")
+        with col_btn1:
+            if st.button('➕ Add Medication', key='add_med_btn', use_container_width=True):
+                st.session_state['show_add_med'] = True
+                st.rerun()
+        with col_btn2:
+            if st.button('✏️ Edit Medication', key='edit_med_btn', use_container_width=True):
+                st.session_state['show_edit_med'] = True
+                st.rerun()
+        
+        # Handle overlays
         if st.session_state.get('show_add_med'):
             show_add_medication_overlay(self._resolve_user_id)
             return
@@ -116,8 +111,6 @@ class MedicationTracker(HydraHeadApp):
             st.warning("No patient selected. Clinicians must authorize a patient in Home tab.")
             return
         patient = get_patient_profile(patient_id)
-        medications = get_enhanced_medications()
-        adherence_stats = get_adherence_stats()
         today_summary = get_today_summary_for_user(patient_id)
 
         # Header with patient info and today's summary
