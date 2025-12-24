@@ -35,10 +35,10 @@ def render_add_request_card(request, status, accept_callback=None, reject_callba
     if status == 'pending' and accept_callback and reject_callback:
         col1, col2, _ = st.columns([1,1,4])
         with col1:
-            if st.button("Accept", key=f"accept_{request['request_id']}"):
+            if st.button("✅ Accept", key=f"accept_{request['request_id']}", use_container_width=True):
                 accept_callback()
         with col2:
-            if st.button("Reject", key=f"reject_{request['request_id']}"):
+            if st.button("❌ Reject", key=f"reject_{request['request_id']}", use_container_width=True):
                 reject_callback()
 
 def render_edit_request_card(request, status, accept_callback=None, reject_callback=None):
@@ -80,10 +80,10 @@ def render_edit_request_card(request, status, accept_callback=None, reject_callb
     if status == 'pending' and accept_callback and reject_callback:
         col1, col2, _ = st.columns([1,1,4])
         with col1:
-            if st.button("Accept", key=f"accept_{request['request_id']}"):
+            if st.button("✅ Accept", key=f"accept_{request['request_id']}", use_container_width=True):
                 accept_callback()
         with col2:
-            if st.button("Reject", key=f"reject_{request['request_id']}"):
+            if st.button("❌ Reject", key=f"reject_{request['request_id']}", use_container_width=True):
                 reject_callback()
 
 def render_notification_card(request, status, accept_callback=None, reject_callback=None):

@@ -19,6 +19,14 @@ class NotificationsApp(HydraHeadApp):
             return None
 
     def run(self):
+        # Load global styles
+        try:
+            with open("assets/styles.css", "r", encoding="utf-8") as f:
+                css = f.read()
+                st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+        except Exception:
+            pass
+        
         st.title('🔔 Notifications')
         user_id = self._resolve_user_id()
         if not user_id:

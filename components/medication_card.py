@@ -1,5 +1,5 @@
 def _render_card_edit(medication, adherence_rate=None, active=True):
-    drug_name = medication.get('drug_name', 'Medication')
+    drug_name = medication.get('drug_name', 'Medication').title()
     dose = medication.get('dose', '')
     timing = medication.get('timing', '')
     instructions = medication.get('instructions', '')
@@ -25,7 +25,7 @@ def _render_card_edit(medication, adherence_rate=None, active=True):
     st.markdown(card_html, unsafe_allow_html=True)
 
 def _render_card_taken(medication, adherence_rate=None):
-    drug_name = medication.get('drug_name', 'Medication')
+    drug_name = medication.get('drug_name', 'Medication').title()
     dose = medication.get('dose', '')
     instructions = medication.get('instructions', '')
     prescribed_by = medication.get('prescribed_by', '')
@@ -52,7 +52,7 @@ def _render_card_taken(medication, adherence_rate=None):
 
 def _render_card_missed(medication, adherence_rate=None):
     timing = medication.get('timing', '')
-    drug_name = medication.get('drug_name', 'Medication')
+    drug_name = medication.get('drug_name', 'Medication').title()
     dose = medication.get('dose', '')
     instructions = medication.get('instructions', '')
     prescribed_by = medication.get('prescribed_by', '')
@@ -78,7 +78,7 @@ def _render_card_missed(medication, adherence_rate=None):
 
 def _render_card_pending(medication, patient_med_id, adherence_rate=None):
     timing = medication.get('timing', '')
-    drug_name = medication.get('drug_name', 'Medication')
+    drug_name = medication.get('drug_name', 'Medication').title()
     dose = medication.get('dose', '')
     instructions = medication.get('instructions', '')
     prescribed_by = medication.get('prescribed_by', '')
@@ -100,20 +100,21 @@ def _render_card_pending(medication, patient_med_id, adherence_rate=None):
 </div>
     """
     st.markdown(card_html, unsafe_allow_html=True)
+    
     col1, col2, _ = st.columns([1, 1, 2])
     with col1:
-        if st.button('Taken', key=f"taken_{patient_med_id}"):
+        if st.button('✅ Taken', key=f"taken_{patient_med_id}", use_container_width=True):
             from data.medication_log import log_medication_intake
             log_medication_intake(patient_med_id, True)
             st.rerun()
     with col2:
-        if st.button('Missed', key=f"missed_{patient_med_id}"):
+        if st.button('❌ Missed', key=f"missed_{patient_med_id}", use_container_width=True):
             from data.medication_log import log_medication_intake
             log_medication_intake(patient_med_id, False)
             st.rerun()
 
 def _render_card_library(medication, adherence_rate=None, active=True):
-    drug_name = medication.get('drug_name', 'Medication')
+    drug_name = medication.get('drug_name', 'Medication').title()
     dose = medication.get('dose', '')
     instructions = medication.get('instructions', '')
     prescribed_by = medication.get('prescribed_by', '')
