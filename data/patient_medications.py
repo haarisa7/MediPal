@@ -4,9 +4,51 @@ from db.database import get_connection
 from datetime import date
 
 
+def _get_medication_status(start_date, end_date):
+	"""Determine medication status ('active' or 'inactive')."""
+	today = date.today()
+	return 'active' if start_date <= today and (end_date is None or end_date >= today) else 'inactive'
+
+
+def _build_med_dict(row, include_status=True):
+	"""Build medication dict from database row."""
+	med = {
+		'id': row[0],
+		'drug_id': row[1],
+		'dose': row[2],
+		'instructions': row[3],
+		'start_date': row[4],
+		'end_date': row[5],
+		'prescribed_by': row[6],
+		'timing': row[7]
+	}
+	if include_status:
+		med['status'] = _get_medication_status(row[4], row[5])
+	return med
+
+
+def _execute_med_query(query, params, include_status=True):
+	"""Execute medication query and return list of dicts."""
+	conn = get_connection()
+	meds = []
+	try:
+		with conn.cursor() as cur:
+			cur.execute(query, params)
+			meds = [_build_med_dict(row, include_status) for row in cur.fetchall()]
+	except Exception as e:
+		st.session_state['db_fetch_error'] = str(e)
+	finally:
+		conn.close()
+	return meds
+
+
 def update_patient_medication(patient_med_id, dose, instructions, start_date, end_date, prescribed_by, timing):
 	"""Update an existing patient medication entry by ID."""
 	conn = get_connection()
+	if not conn:
+		st.session_state['db_update_error'] = "Failed to connect to database"
+		return False
+	
 	try:
 		with conn.cursor() as cur:
 			cur.execute('''
@@ -15,205 +57,85 @@ def update_patient_medication(patient_med_id, dose, instructions, start_date, en
 				WHERE patient_med_id = %s
 			''', (dose, instructions, start_date, end_date, prescribed_by, timing, patient_med_id))
 			conn.commit()
+		return True
 	except Exception as e:
 		st.session_state['db_update_error'] = str(e)
 		conn.rollback()
+		return False
 	finally:
 		conn.close()
-# Return all medication entries for a user (not distinct by drug_id)
 def get_all_patient_medication_entries(user_id):
-	conn = get_connection()
-	meds = []
-	today = date.today()
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s
-				ORDER BY start_date DESC, drug_id, timing
-			''', (user_id,))
-			rows = cur.fetchall()
-			for row in rows:
-				status = get_medication_status(row[4], row[5])
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-					'status': status
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
-# Utility: Determine medication status ('active' or 'inactive')
+	"""Return all medication entries for a user (not distinct by drug_id)."""
+	query = '''
+		SELECT patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s
+		ORDER BY start_date DESC, drug_id, timing
+	'''
+	return _execute_med_query(query, (user_id,))
+
+
 def get_medication_status(start_date, end_date):
-	today = date.today()
-	if start_date <= today and (end_date is None or end_date >= today):
-		return 'active'
-	return 'inactive'
+	"""Utility: Determine medication status ('active' or 'inactive')."""
+	return _get_medication_status(start_date, end_date)
+
+
 def get_daily_patient_medications(user_id):
-	"""Return all active medications for a user (today between start_date and end_date, or end_date is null), including all rows (not deduplicated)."""
-	conn = get_connection()
-	meds = []
+	"""Return all active medications for a user."""
 	today = date.today()
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s AND start_date <= %s AND (end_date IS NULL OR end_date >= %s)
-				ORDER BY drug_id, timing, start_date DESC
-			''', (user_id, today, today))
-			rows = cur.fetchall()
-			for row in rows:
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
+	query = '''
+		SELECT patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s AND start_date <= %s AND (end_date IS NULL OR end_date >= %s)
+		ORDER BY drug_id, timing, start_date DESC
+	'''
+	return _execute_med_query(query, (user_id, today, today), include_status=False)
+
+
 def get_all_patient_medications(user_id):
-	"""Return only one medication per drug_id for a user (most recent by start_date), including timing."""
-	conn = get_connection()
-	meds = []
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s
-				ORDER BY drug_id, start_date DESC
-			''', (user_id,))
-			rows = cur.fetchall()
-			for row in rows:
-				status = get_medication_status(row[4], row[5])
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-					'status': status
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
+	"""Return one medication per drug_id (most recent by start_date)."""
+	query = '''
+		SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s
+		ORDER BY drug_id, start_date DESC
+	'''
+	return _execute_med_query(query, (user_id,))
+
 
 def get_active_patient_medications(user_id):
-	"""Return only one active medication per drug_id for a user (most recent by start_date), including timing."""
-	conn = get_connection()
-	meds = []
+	"""Return one active medication per drug_id (most recent by start_date)."""
 	today = date.today()
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s AND start_date <= %s AND (end_date IS NULL OR end_date >= %s)
-				ORDER BY drug_id, start_date DESC
-			''', (user_id, today, today))
-			rows = cur.fetchall()
-			for row in rows:
-				status = get_medication_status(row[4], row[5])
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-					'status': status
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
+	query = '''
+		SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s AND start_date <= %s AND (end_date IS NULL OR end_date >= %s)
+		ORDER BY drug_id, start_date DESC
+	'''
+	return _execute_med_query(query, (user_id, today, today))
+
 
 def get_inactive_patient_medications(user_id):
-	"""Return only one inactive medication per drug_id for a user (most recent by start_date), including timing."""
-	conn = get_connection()
-	meds = []
+	"""Return one inactive medication per drug_id (most recent by start_date)."""
 	today = date.today()
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s AND end_date IS NOT NULL AND end_date < %s
-				ORDER BY drug_id, start_date DESC
-			''', (user_id, today))
-			rows = cur.fetchall()
-			for row in rows:
-				status = get_medication_status(row[4], row[5])
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-					'status': status
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
+	query = '''
+		SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s AND end_date IS NOT NULL AND end_date < %s
+		ORDER BY drug_id, start_date DESC
+	'''
+	return _execute_med_query(query, (user_id, today))
+
+
 def get_patient_medications(user_id):
-	# Return only one medication per drug_id for a user (most recent by start_date), including timing
-	conn = get_connection()
-	meds = []
-	try:
-		with conn.cursor() as cur:
-			cur.execute('''
-				SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
-				FROM patient_medications
-				WHERE user_id = %s
-				ORDER BY drug_id, start_date DESC
-			''', (user_id,))
-			rows = cur.fetchall()
-			for row in rows:
-				meds.append({
-					'id': row[0],
-					'drug_id': row[1],
-					'dose': row[2],
-					'instructions': row[3],
-					'start_date': row[4],
-					'end_date': row[5],
-					'prescribed_by': row[6],
-					'timing': row[7],
-				})
-	except Exception as e:
-		st.session_state['db_fetch_error'] = str(e)
-	finally:
-		conn.close()
-	return meds
+	"""Return one medication per drug_id (most recent by start_date)."""
+	query = '''
+		SELECT DISTINCT ON (drug_id) patient_med_id, drug_id, dose, instructions, start_date, end_date, prescribed_by, timing
+		FROM patient_medications
+		WHERE user_id = %s
+		ORDER BY drug_id, start_date DESC
+	'''
+	return _execute_med_query(query, (user_id,), include_status=False)
 import psycopg2
 from db.database import get_connection
 

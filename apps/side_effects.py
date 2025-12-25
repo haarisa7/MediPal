@@ -64,24 +64,6 @@ class SideEffects(HydraHeadApp):
         if 'show_side_effect_form' not in st.session_state:
             st.session_state.show_side_effect_form = False
         
-        # Mark all doctor notes as received after a 2-second delay (using session state to track)
-        if f'notes_marked_received_{patient_id}' not in st.session_state:
-            st.session_state[f'notes_marked_received_{patient_id}'] = False
-        
-        if not st.session_state[f'notes_marked_received_{patient_id}']:
-            import time
-            import threading
-            
-            def mark_notes_after_delay():
-                time.sleep(2)
-                from data.side_effect_requests import mark_all_notes_as_received
-                mark_all_notes_as_received(patient_id)
-                st.session_state[f'notes_marked_received_{patient_id}'] = True
-            
-            # Start background thread to mark notes as received after 2 seconds
-            thread = threading.Thread(target=mark_notes_after_delay, daemon=True)
-            thread.start()
-        
         # If form is active, show only the form (full screen takeover)
         if st.session_state.show_side_effect_form:
             render_side_effect_report_form(patient_id)

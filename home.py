@@ -20,6 +20,7 @@ if __name__ == "__main__":
     app.add_app("Home", icon="🏠", app=apps.HomeApp(title='Home'),is_home=True)
     app.add_app("Medication Tracker",icon="📈", app=apps.MedicationTracker(title="Medication Tracker"))
     app.add_app("Side Effects", icon="⚠️", app=apps.SideEffects(title="Side Effects"))
+    app.add_app("Emergency Dashboard", icon="🚨", app=apps.EmergencyDashboard(title="Emergency Dashboard"))
     app.add_app("Login", icon="🔐", app=apps.LoginApp(title="Login"))
     app.add_app("Create Account", icon="📝", app=apps.SignUpApp(title="Create Account"))
     app.add_app("Account", icon="🧑‍💼", app=apps.AccountApp(title="Account"))
@@ -34,20 +35,22 @@ if __name__ == "__main__":
         
         if role == 0:  # Patient
             from data.medication_requests import get_pending_requests_for_patient
-            notification_count = len(get_pending_requests_for_patient(user_id))
-            last_seen = st.session_state.get('last_seen_notification_count', 0)
-            if notification_count > last_seen:
-                st.toast(f"You have {notification_count} new medication request(s)!", icon="🔔")
-            st.session_state['last_seen_notification_count'] = notification_count
+            med_request_count = len(get_pending_requests_for_patient(user_id))
             
             # Check for unread doctor notes
             from data.side_effect_requests import get_unread_doctor_notes_for_patient
             unread_notes_count = get_unread_doctor_notes_for_patient(user_id)
-            last_seen_notes = st.session_state.get('last_seen_doctor_notes_count', 0)
-            if unread_notes_count > last_seen_notes:
-                new_notes = unread_notes_count - last_seen_notes
-                st.toast(f"You have {new_notes} new doctor note(s) on your side effect reports!", icon="💬")
-            st.session_state['last_seen_doctor_notes_count'] = unread_notes_count
+            
+            # Total notification count includes both medication requests and unread notes
+            notification_count = med_request_count + unread_notes_count
+            
+            last_seen = st.session_state.get('last_seen_notification_count', 0)
+            if notification_count > last_seen:
+                if med_request_count > 0:
+                    st.toast(f"You have {med_request_count} new medication request(s)!", icon="🔔")
+                if unread_notes_count > 0:
+                    st.toast(f"You have {unread_notes_count} new doctor note(s) on your side effect reports!", icon="💬")
+            st.session_state['last_seen_notification_count'] = notification_count
         
         elif role == 1:  # Clinician
             # Check for new side effect reports from authorized patient
@@ -71,6 +74,7 @@ if __name__ == "__main__":
             'Home': ['Home'],
             'Medication Tracker': ['Medication Tracker'],
             'Side Effects': ['Side Effects'],
+            'Emergency Dashboard': ['Emergency Dashboard'],
             notifications_key: ['Notifications'],
             'Account': ['Account'],
         }

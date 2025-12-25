@@ -1,7 +1,76 @@
 import streamlit as st
 
-from data.doctors import get_all_doctors, get_doctor_name
 from data.side_effect import get_all_sideeffects_for_drug
+
+
+def _render_side_effect_list(effects, effect_type='common'):
+    """Render a list of side effects with styling based on type."""
+    if not effects:
+        st.info(f"No {effect_type} side effects {'reported' if effect_type != 'rare' else 'documented'} for this medication.")
+        return
+    
+    # Define styling based on effect type
+    styles = {
+        'common': {
+            'title': 'Most Frequently Reported Side Effects',
+            'border': '#e5e7eb',
+            'bg': '#ffffff',
+            'text': '#1f2937',
+            'badge_bg': '#dbeafe',
+            'badge_text': '#1e40af',
+            'border_width': '1px',
+            'warning': None
+        },
+        'uncommon': {
+            'title': '⚠️ Uncommon Side Effects',
+            'border': '#f59e0b',
+            'bg': '#fffbeb',
+            'text': '#92400e',
+            'badge_bg': '#fef3c7',
+            'badge_text': '#92400e',
+            'border_width': '1px',
+            'warning': None
+        },
+        'rare': {
+            'title': '🚨 Rare Side Effects',
+            'border': '#dc2626',
+            'bg': '#fef2f2',
+            'text': '#991b1b',
+            'badge_bg': '#dc2626',
+            'badge_text': 'white',
+            'border_width': '2px',
+            'warning': 'These are rare but potentially serious. Contact your healthcare provider if you experience these symptoms.'
+        }
+    }
+    
+    style = styles.get(effect_type, styles['common'])
+    st.markdown(f"### {style['title']}")
+    
+    if style['warning']:
+        st.warning(style['warning'])
+    
+    for effect in effects:
+        effect_name = effect.get('pt_name', 'Unknown')
+        frequency = effect.get('average_frequency', 0)
+        frequency_percent = f"{frequency * 100:.1f}%" if frequency else "Unknown"
+        
+        st.markdown(f"""
+        <div style='border: {style['border_width']} solid {style['border']}; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: {style['bg']};'>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <div style='font-weight: {'700' if effect_type == 'rare' else '600'}; font-size: 15px; color: {style['text']};'>{effect_name}</div>
+                <div style='background: {style['badge_bg']}; color: {style['badge_text']}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
+                    {frequency_percent}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Add emergency info for rare effects
+    if effect_type == 'rare':
+        st.markdown("### 🚨 Emergency Contacts")
+        st.error("**For severe side effects:** Call 911 or go to your nearest emergency room")
+        st.info("**For urgent questions:** Contact your healthcare provider")
+        st.info("**Poison Control:** 1-800-222-1222 (24/7)")
 
 
 def render_side_effect_card(drug: dict, expanded: bool = False, button_key: str = "card"):
@@ -74,7 +143,7 @@ def render_enhanced_side_effect_content(drug: dict):
             st.session_state[f"side_effect_tab_{drug['id']}"] = "rare"
     
     with col4:
-        if st.button("� Search", key=f"report_{drug['id']}", use_container_width=True):
+        if st.button("🔍 Search", key=f"report_{drug['id']}", use_container_width=True):
             st.session_state[f"side_effect_tab_{drug['id']}"] = "report"
     
     st.markdown("---")
@@ -82,105 +151,11 @@ def render_enhanced_side_effect_content(drug: dict):
     # Display content based on selected tab
     current_tab = st.session_state.get(f"side_effect_tab_{drug['id']}", "common")
     
-    if current_tab == "common":
-        render_common_side_effects(drug)
-    elif current_tab == "uncommon":
-        render_uncommon_side_effects(drug)
-    elif current_tab == "rare":
-        render_rare_side_effects(drug)
-    elif current_tab == "report":
+    if current_tab == "report":
         render_side_effect_search(drug)
-
-
-def render_common_side_effects(drug: dict):
-    """Render common side effects with frequency information."""
-    
-    common_effects = drug.get('common_side_effects', [])
-    
-    if not common_effects:
-        st.info("No common side effects reported for this medication.")
-        return
-    
-    st.markdown("### Most Frequently Reported Side Effects")
-    
-    for effect in common_effects:
-        # Get pt_name and average_frequency from the database result
-        effect_name = effect.get('pt_name', 'Unknown')
-        frequency = effect.get('average_frequency', 0)
-        frequency_percent = f"{frequency * 100:.1f}%" if frequency else "Unknown"
-        
-        st.markdown(f"""
-        <div style='border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #ffffff;'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <div style='font-weight: 600; font-size: 15px; color: #1f2937;'>{effect_name}</div>
-                <div style='background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
-                    {frequency_percent}
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-def render_uncommon_side_effects(drug: dict):
-    """Render uncommon side effects with frequency information."""
-    
-    uncommon_effects = drug.get('uncommon_side_effects', [])
-    
-    if not uncommon_effects:
-        st.info("No uncommon side effects reported for this medication.")
-        return
-    
-    st.markdown("### ⚠️ Uncommon Side Effects")
-    
-    for effect in uncommon_effects:
-        effect_name = effect.get('pt_name', 'Unknown')
-        frequency = effect.get('average_frequency', 0)
-        frequency_percent = f"{frequency * 100:.1f}%" if frequency else "Unknown"
-        
-        st.markdown(f"""
-        <div style='border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #fffbeb;'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <div style='font-weight: 600; font-size: 15px; color: #92400e;'>{effect_name}</div>
-                <div style='background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
-                    {frequency_percent}
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-def render_rare_side_effects(drug: dict):
-    """Render rare side effects with frequency information."""
-    
-    rare_effects = drug.get('rare_effects', [])
-    
-    if not rare_effects:
-        st.info("No rare side effects documented for this medication.")
-        return
-    
-    st.markdown("### 🚨 Rare Side Effects")
-    st.warning("These are rare but potentially serious. Contact your healthcare provider if you experience these symptoms.")
-    
-    for effect in rare_effects:
-        effect_name = effect.get('pt_name', 'Unknown')
-        frequency = effect.get('average_frequency', 0)
-        frequency_percent = f"{frequency * 100:.1f}%" if frequency else "Unknown"
-        
-        st.markdown(f"""
-        <div style='border: 2px solid #dc2626; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #fef2f2;'>
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <div style='font-weight: 700; font-size: 15px; color: #991b1b;'>{effect_name}</div>
-                <div style='background: #dc2626; color: white; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
-                    {frequency_percent}
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Emergency contact info
-    st.markdown("### 🚨 Emergency Contacts")
-    st.error("**For severe side effects:** Call 911 or go to your nearest emergency room")
-    st.info("**For urgent questions:** Contact your healthcare provider")
-    st.info("**Poison Control:** 1-800-222-1222 (24/7)")
+    else:
+        effects = drug.get(f"{current_tab}_side_effects" if current_tab != "rare" else "rare_effects", [])
+        _render_side_effect_list(effects, current_tab)
 
 
 def render_side_effect_search(drug: dict):
@@ -216,7 +191,7 @@ def render_side_effect_search(drug: dict):
         if filtered_effects:
             st.markdown(f"**{len(filtered_effects)} side effect(s) found:**")
             
-            # Display as cards matching the style of other tabs
+            # Display filtered results
             for effect in filtered_effects:
                 effect_name = effect.get('pt_name', 'Unknown')
                 frequency = effect.get('average_frequency')
@@ -224,39 +199,19 @@ def render_side_effect_search(drug: dict):
                 
                 # Determine styling based on frequency
                 if frequency is not None and frequency > 0.5:
-                    # Common
-                    border_color = "#e5e7eb"
-                    bg_color = "#ffffff"
-                    text_color = "#1f2937"
-                    badge_bg = "#dbeafe"
-                    badge_color = "#1e40af"
+                    border, bg, text, badge_bg, badge_text = "#e5e7eb", "#ffffff", "#1f2937", "#dbeafe", "#1e40af"
                 elif frequency is not None and frequency > 0.2:
-                    # Uncommon
-                    border_color = "#f59e0b"
-                    bg_color = "#fffbeb"
-                    text_color = "#92400e"
-                    badge_bg = "#fef3c7"
-                    badge_color = "#92400e"
+                    border, bg, text, badge_bg, badge_text = "#f59e0b", "#fffbeb", "#92400e", "#fef3c7", "#92400e"
                 elif frequency is not None:
-                    # Rare
-                    border_color = "#dc2626"
-                    bg_color = "#fef2f2"
-                    text_color = "#991b1b"
-                    badge_bg = "#dc2626"
-                    badge_color = "white"
+                    border, bg, text, badge_bg, badge_text = "#dc2626", "#fef2f2", "#991b1b", "#dc2626", "white"
                 else:
-                    # Unknown
-                    border_color = "#9ca3af"
-                    bg_color = "#f9fafb"
-                    text_color = "#374151"
-                    badge_bg = "#e5e7eb"
-                    badge_color = "#374151"
+                    border, bg, text, badge_bg, badge_text = "#9ca3af", "#f9fafb", "#374151", "#e5e7eb", "#374151"
                 
                 st.markdown(f"""
-                <div style='border: 1px solid {border_color}; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: {bg_color};'>
+                <div style='border: 1px solid {border}; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: {bg};'>
                     <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <div style='font-weight: 600; font-size: 15px; color: {text_color};'>{effect_name}</div>
-                        <div style='background: {badge_bg}; color: {badge_color}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
+                        <div style='font-weight: 600; font-size: 15px; color: {text};'>{effect_name}</div>
+                        <div style='background: {badge_bg}; color: {badge_text}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;'>
                             {frequency_percent}
                         </div>
                     </div>
