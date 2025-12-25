@@ -20,6 +20,7 @@ if __name__ == "__main__":
     app.add_app("Home", icon="🏠", app=apps.HomeApp(title='Home'),is_home=True)
     app.add_app("Medication Tracker",icon="📈", app=apps.MedicationTracker(title="Medication Tracker"))
     app.add_app("Side Effects", icon="⚠️", app=apps.SideEffects(title="Side Effects"))
+    app.add_app("Medical History Log", icon="📋", app=apps.MedicalHistoryApp(title="Medical History Log"))
     app.add_app("Emergency Dashboard", icon="🚨", app=apps.EmergencyDashboard(title="Emergency Dashboard"))
     app.add_app("Login", icon="🔐", app=apps.LoginApp(title="Login"))
     app.add_app("Create Account", icon="📝", app=apps.SignUpApp(title="Create Account"))
@@ -74,6 +75,7 @@ if __name__ == "__main__":
             'Home': ['Home'],
             'Medication Tracker': ['Medication Tracker'],
             'Side Effects': ['Side Effects'],
+            'Medical History Log': ['Medical History Log'],
             'Emergency Dashboard': ['Emergency Dashboard'],
             notifications_key: ['Notifications'],
             'Account': ['Account'],
