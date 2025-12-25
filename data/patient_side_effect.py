@@ -1,6 +1,89 @@
 from db.database import get_connection
 
 
+def _build_report_dict(row, include_rarity=False):
+    """Build a report dict from a database row."""
+    base_dict = {
+        'report_id': row[0],
+        'user_id': row[1],
+        'patient_med_id': row[2],
+        'side_effect_id': row[3],
+        'severity': row[4],
+        'notes': row[5],
+        'reported_at': row[6],
+        'side_effect_name': row[7],
+        'display_name': row[8],
+        'dose': row[9],
+        'resolved': row[10]
+    }
+    
+    if include_rarity and len(row) > 10:
+        # Determine rarity based on frequency (row[10] when fetching with frequency)
+        frequency = row[10]
+        if frequency is not None:
+            if frequency > 0.5:
+                rarity = 'common'
+            elif frequency > 0.2:
+                rarity = 'uncommon'
+            else:
+                rarity = 'rare'
+        else:
+            rarity = 'unknown'
+        
+        base_dict.update({
+            'reported_at': row[6].strftime('%Y-%m-%d') if row[6] else 'Unknown date',
+            'rarity': rarity,
+            'frequency': frequency
+        })
+    
+    return base_dict
+
+
+def _execute_report_query(query, params, single=False, include_rarity=False):
+    """Execute a query and return report dict(s)."""
+    conn = get_connection()
+    result = None if single else []
+    
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            
+            if single:
+                row = cur.fetchone()
+                if row:
+                    result = _build_report_dict(row, include_rarity)
+            else:
+                results = cur.fetchall()
+                result = [_build_report_dict(row, include_rarity) for row in results]
+    except Exception as e:
+        print(f"Error executing report query: {e}")
+    finally:
+        conn.close()
+    
+    return result
+
+
+# Base query for fetching reports
+_BASE_REPORT_QUERY = '''
+    SELECT 
+        pse.report_id,
+        pse.user_id,
+        pse.patient_med_id,
+        pse.side_effect_id,
+        pse.severity,
+        pse.notes,
+        pse.reported_at,
+        se.pt_name as side_effect_name,
+        d.display_name,
+        pm.dose,
+        pse.resolved
+    FROM patient_side_effects pse
+    LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
+    LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
+    LEFT JOIN drugs d ON pm.drug_id = d.drug_id
+'''
+
+
 def insert_side_effect_report(user_id, side_effect_id, severity, notes, patient_med_id=None):
     """
     Insert a new side effect report into the patient_side_effects table.
@@ -42,164 +125,36 @@ def insert_side_effect_report(user_id, side_effect_id, severity, notes, patient_
 
 
 def get_patient_side_effect_reports(user_id):
-    """
-    Get all side effect reports for a patient.
-    
-    Returns list of dicts with report details.
-    """
-    conn = get_connection()
-    reports = []
-    
-    try:
-        with conn.cursor() as cur:
-            cur.execute('''
-                SELECT 
-                    pse.report_id,
-                    pse.user_id,
-                    pse.patient_med_id,
-                    pse.side_effect_id,
-                    pse.severity,
-                    pse.notes,
-                    pse.reported_at,
-                    se.pt_name as side_effect_name,
-                    d.display_name,
-                    pm.dose,
-                    pse.resolved
-                FROM patient_side_effects pse
-                LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
-                LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
-                LEFT JOIN drugs d ON pm.drug_id = d.drug_id
-                WHERE pse.user_id = %s
-                ORDER BY pse.reported_at DESC
-            ''', (user_id,))
-            
-            results = cur.fetchall()
-            for row in results:
-                reports.append({
-                    'report_id': row[0],
-                    'user_id': row[1],
-                    'patient_med_id': row[2],
-                    'side_effect_id': row[3],
-                    'severity': row[4],
-                    'notes': row[5],
-                    'reported_at': row[6],
-                    'side_effect_name': row[7],
-                    'display_name': row[8],
-                    'dose': row[9],
-                    'resolved': row[10]
-                })
-    except Exception as e:
-        print(f"Error fetching side effect reports: {e}")
-    finally:
-        conn.close()
-    
-    return reports
+    """Get all side effect reports for a patient."""
+    query = _BASE_REPORT_QUERY + '''
+        WHERE pse.user_id = %s
+        ORDER BY pse.reported_at DESC
+    '''
+    return _execute_report_query(query, (user_id,))
+
+
+def get_patient_side_effect_report_by_id(report_id):
+    """Get a single side effect report by its ID."""
+    query = _BASE_REPORT_QUERY + 'WHERE pse.report_id = %s'
+    return _execute_report_query(query, (report_id,), single=True)
 
 
 def get_active_patient_side_effect_reports(user_id):
-    """
-    Get all active (unresolved) side effect reports for a patient.
-    """
-    conn = get_connection()
-    reports = []
-    
-    try:
-        with conn.cursor() as cur:
-            cur.execute('''
-                SELECT 
-                    pse.report_id,
-                    pse.user_id,
-                    pse.patient_med_id,
-                    pse.side_effect_id,
-                    pse.severity,
-                    pse.notes,
-                    pse.reported_at,
-                    se.pt_name as side_effect_name,
-                    d.display_name,
-                    pm.dose,
-                    pse.resolved
-                FROM patient_side_effects pse
-                LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
-                LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
-                LEFT JOIN drugs d ON pm.drug_id = d.drug_id
-                WHERE pse.user_id = %s AND (pse.resolved = FALSE OR pse.resolved IS NULL)
-                ORDER BY pse.reported_at DESC
-            ''', (user_id,))
-            
-            results = cur.fetchall()
-            for row in results:
-                reports.append({
-                    'report_id': row[0],
-                    'user_id': row[1],
-                    'patient_med_id': row[2],
-                    'side_effect_id': row[3],
-                    'severity': row[4],
-                    'notes': row[5],
-                    'reported_at': row[6],
-                    'side_effect_name': row[7],
-                    'display_name': row[8],
-                    'dose': row[9],
-                    'resolved': row[10]
-                })
-    except Exception as e:
-        print(f"Error fetching active side effect reports: {e}")
-    finally:
-        conn.close()
-    
-    return reports
+    """Get all active (unresolved) side effect reports for a patient."""
+    query = _BASE_REPORT_QUERY + '''
+        WHERE pse.user_id = %s AND (pse.resolved = FALSE OR pse.resolved IS NULL)
+        ORDER BY pse.reported_at DESC
+    '''
+    return _execute_report_query(query, (user_id,))
 
 
 def get_resolved_patient_side_effect_reports(user_id):
-    """
-    Get all resolved side effect reports for a patient.
-    """
-    conn = get_connection()
-    reports = []
-    
-    try:
-        with conn.cursor() as cur:
-            cur.execute('''
-                SELECT 
-                    pse.report_id,
-                    pse.user_id,
-                    pse.patient_med_id,
-                    pse.side_effect_id,
-                    pse.severity,
-                    pse.notes,
-                    pse.reported_at,
-                    se.pt_name as side_effect_name,
-                    d.display_name,
-                    pm.dose,
-                    pse.resolved
-                FROM patient_side_effects pse
-                LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
-                LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
-                LEFT JOIN drugs d ON pm.drug_id = d.drug_id
-                WHERE pse.user_id = %s AND pse.resolved = TRUE
-                ORDER BY pse.reported_at DESC
-            ''', (user_id,))
-            
-            results = cur.fetchall()
-            for row in results:
-                reports.append({
-                    'report_id': row[0],
-                    'user_id': row[1],
-                    'patient_med_id': row[2],
-                    'side_effect_id': row[3],
-                    'severity': row[4],
-                    'notes': row[5],
-                    'reported_at': row[6],
-                    'side_effect_name': row[7],
-                    'display_name': row[8],
-                    'dose': row[9],
-                    'resolved': row[10]
-                })
-    except Exception as e:
-        print(f"Error fetching resolved side effect reports: {e}")
-    finally:
-        conn.close()
-    
-    return reports
+    """Get all resolved side effect reports for a patient."""
+    query = _BASE_REPORT_QUERY + '''
+        WHERE pse.user_id = %s AND pse.resolved = TRUE
+        ORDER BY pse.reported_at DESC
+    '''
+    return _execute_report_query(query, (user_id,))
 
 
 def resolve_side_effect_report(report_id):
@@ -227,78 +182,30 @@ def resolve_side_effect_report(report_id):
 
 
 def get_recent_patient_side_effect_reports(user_id, limit=3):
-    """
-    Get recent side effect reports for a patient (limited to most recent).
-    
-    Args:
-        user_id: Patient's user ID
-        limit: Maximum number of reports to return (default: 3)
-    
-    Returns:
-        List of dicts with report details, sorted by most recent first.
-    """
-    conn = get_connection()
-    reports = []
-    
-    try:
-        with conn.cursor() as cur:
-            cur.execute('''
-                SELECT 
-                    pse.report_id,
-                    pse.user_id,
-                    pse.patient_med_id,
-                    pse.side_effect_id,
-                    pse.severity,
-                    pse.notes,
-                    pse.reported_at,
-                    se.pt_name as side_effect_name,
-                    d.display_name,
-                    pm.dose,
-                    dse.average_frequency
-                FROM patient_side_effects pse
-                LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
-                LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
-                LEFT JOIN drugs d ON pm.drug_id = d.drug_id
-                LEFT JOIN drug_side_effects dse ON (dse.drug_id = d.drug_id AND dse.side_effect_id = se.meddra_id)
-                WHERE pse.user_id = %s
-                ORDER BY pse.reported_at DESC
-                LIMIT %s
-            ''', (user_id, limit))
-            
-            results = cur.fetchall()
-            for row in results:
-                # Determine rarity based on frequency
-                frequency = row[10]
-                if frequency is not None:
-                    if frequency > 0.5:
-                        rarity = 'common'
-                    elif frequency > 0.2:
-                        rarity = 'uncommon'
-                    else:
-                        rarity = 'rare'
-                else:
-                    rarity = 'unknown'
-                
-                reports.append({
-                    'report_id': row[0],
-                    'user_id': row[1],
-                    'patient_med_id': row[2],
-                    'side_effect_id': row[3],
-                    'severity': row[4],
-                    'notes': row[5],
-                    'reported_at': row[6].strftime('%Y-%m-%d') if row[6] else 'Unknown date',
-                    'side_effect_name': row[7],
-                    'display_name': row[8],
-                    'dose': row[9],
-                    'rarity': rarity,
-                    'frequency': frequency
-                })
-    except Exception as e:
-        print(f"Error fetching recent side effect reports: {e}")
-    finally:
-        conn.close()
-    
-    return reports
+    """Get recent side effect reports for a patient (limited to most recent)."""
+    query = '''
+        SELECT 
+            pse.report_id,
+            pse.user_id,
+            pse.patient_med_id,
+            pse.side_effect_id,
+            pse.severity,
+            pse.notes,
+            pse.reported_at,
+            se.pt_name as side_effect_name,
+            d.display_name,
+            pm.dose,
+            dse.average_frequency
+        FROM patient_side_effects pse
+        LEFT JOIN side_effects se ON pse.side_effect_id = se.meddra_id
+        LEFT JOIN patient_medications pm ON pse.patient_med_id = pm.patient_med_id
+        LEFT JOIN drugs d ON pm.drug_id = d.drug_id
+        LEFT JOIN drug_side_effects dse ON (dse.drug_id = d.drug_id AND dse.side_effect_id = se.meddra_id)
+        WHERE pse.user_id = %s
+        ORDER BY pse.reported_at DESC
+        LIMIT %s
+    '''
+    return _execute_report_query(query, (user_id, limit), include_rarity=True)
 
 
 def get_side_effect_reports_count(user_id):

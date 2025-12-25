@@ -1,7 +1,6 @@
 import streamlit as st
 from hydralit import HydraHeadApp
 from datetime import date, datetime
-from data.doctors import get_all_doctors, get_doctor_name
 from data.patient_medications import (
     insert_patient_medication,
     get_daily_patient_medications,
@@ -133,46 +132,28 @@ class MedicationTracker(HydraHeadApp):
         """, unsafe_allow_html=True)
 
         # Quick stats cards
+        from utils.medication_helpers import render_stat_card
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             remaining = today_summary['remaining']
             color = '#10b981' if remaining == 0 else '#f59e0b' if remaining <= 2 else '#dc2626'
-            st.markdown(f"""
-            <div style='background: #ffffff; border-left: 4px solid {color}; padding: 16px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-                <div style='font-size: 24px; font-weight: 700; color: {color};'>{remaining}</div>
-                <div style='color: #6b7280; font-size: 14px;'>Remaining Today</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(render_stat_card(remaining, 'Remaining Today', color), unsafe_allow_html=True)
 
         with col2:
             overdue = today_summary['overdue']
             color = '#dc2626' if overdue > 0 else '#6b7280'
-            st.markdown(f"""
-            <div style='background: #ffffff; border-left: 4px solid {color}; padding: 16px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-                <div style='font-size: 24px; font-weight: 700; color: {color};'>{overdue}</div>
-                <div style='color: #6b7280; font-size: 14px;'>Overdue</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(render_stat_card(overdue, 'Overdue', color), unsafe_allow_html=True)
 
         with col3:
             user_id = self._resolve_user_id()
             total_adherence = get_total_adherence_for_user(user_id)
+            adherence_val = f"{total_adherence if total_adherence is not None else '--'}%"
             color = '#10b981' if (total_adherence or 0) >= 80 else '#f59e0b' if (total_adherence or 0) >= 60 else '#dc2626'
-            st.markdown(f"""
-            <div style='background: #ffffff; border-left: 4px solid {color}; padding: 16px; border-radius: 8px; text-align: center; box-shadow: 0 2p 8px rgba(0,0,0,0.1);'>
-                <div style='font-size: 24px; font-weight: 700; color: {color};'>{total_adherence if total_adherence is not None else '--'}%</div>
-                <div style='color: #6b7280; font-size: 14px;'>Total Patient Adherence</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(render_stat_card(adherence_val, 'Total Patient Adherence', color), unsafe_allow_html=True)
 
         with col4:
-            st.markdown(f"""
-            <div style='background: #ffffff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
-                <div style='font-size: 24px; font-weight: 700; color: #3b82f6;'>{today_summary['active_meds']}</div>
-                <div style='color: #6b7280; font-size: 14px;'>Active Medications</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(render_stat_card(today_summary['active_meds'], 'Active Medications', '#3b82f6'), unsafe_allow_html=True)
 
         # Main layout: Daily schedule on left, medication library on right
         col_main, col_sidebar = st.columns([2, 1])

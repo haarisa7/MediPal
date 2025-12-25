@@ -1,13 +1,13 @@
 def get_today_intake_status(patient_med_id, date_for=None):
-    """Return 'taken', 'missed', or None for today's intake status for a given patient_med_id."""
-    from datetime import date as dtdate
-    date_for = date_for or dtdate.today()
-    logs = get_intake_log_for_med(patient_med_id)
-    for log in logs:
-        if log['taken_time'].date() == date_for:
-            return 'taken' if log['taken'] else 'missed'
-    return None
-from data.patient_medications import get_daily_patient_medications
+	"""Return 'taken', 'missed', or None for today's intake status."""
+	from datetime import date as dtdate
+	date_for = date_for or dtdate.today()
+	logs = get_intake_log_for_med(patient_med_id)
+	for log in logs:
+		if log['taken_time'].date() == date_for:
+			return 'taken' if log['taken'] else 'missed'
+	return None
+
 
 def log_missed_intakes_for_day(user_id, date_for=None):
     """
@@ -47,6 +47,8 @@ import psycopg2
 from db.database import get_connection
 import streamlit as st
 from datetime import datetime
+from data.patient_medications import get_daily_patient_medications
+
 
 def log_medication_intake(patient_med_id, taken, taken_time=None):
     """Insert a row into medication_intake_log for a medication event (taken or missed)."""
@@ -82,27 +84,27 @@ def log_bulk_missed_intakes(patient_med_ids, date_for=None):
         conn.close()
 
 def get_intake_log_for_med(patient_med_id):
-    """Return all intake log rows for a given patient_med_id."""
-    conn = get_connection()
-    logs = []
-    try:
-        with conn.cursor() as cur:
-            cur.execute('''
-                SELECT intake_id, patient_med_id, taken, taken_time
-                FROM medication_intake_log
-                WHERE patient_med_id = %s
-                ORDER BY taken_time DESC
-            ''', (patient_med_id,))
-            rows = cur.fetchall()
-            for row in rows:
-                logs.append({
-                    'intake_id': row[0],
-                    'patient_med_id': row[1],
-                    'taken': row[2],
-                    'taken_time': row[3],
-                })
-    except Exception as e:
-        st.session_state['db_fetch_error'] = str(e)
-    finally:
-        conn.close()
-    return logs
+	"""Return all intake log rows for a given patient_med_id."""
+	conn = get_connection()
+	logs = []
+	try:
+		with conn.cursor() as cur:
+			cur.execute('''
+				SELECT intake_id, patient_med_id, taken, taken_time
+				FROM medication_intake_log
+				WHERE patient_med_id = %s
+				ORDER BY taken_time DESC
+			''', (patient_med_id,))
+			rows = cur.fetchall()
+			for row in rows:
+				logs.append({
+					'intake_id': row[0],
+					'patient_med_id': row[1],
+					'taken': row[2],
+					'taken_time': row[3]
+				})
+	except Exception as e:
+		st.session_state['db_fetch_error'] = str(e)
+	finally:
+		conn.close()
+	return logs

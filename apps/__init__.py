@@ -5,5 +5,6 @@ from .signup import SignUpApp
 from .account_app import AccountApp
 from .notifications_app import NotificationsApp
 from .side_effects import SideEffects
+from .emergency_dashboard import EmergencyDashboard
 
-__all__ = ["HomeApp", "MedicationTracker", "SideEffects", "LoginApp", "SignUpApp", "AccountApp", "NotificationsApp"]
+__all__ = ["HomeApp", "MedicationTracker", "SideEffects", "LoginApp", "SignUpApp", "AccountApp", "NotificationsApp", "EmergencyDashboard"]
