@@ -44,7 +44,7 @@ class HomeApp(HydraHeadApp):
             return
 
         # Import here to avoid circular import
-        from data.patient_profile import get_user_role
+        from data.shared.patient_profile import get_user_role
         from apps.medication_tracker import MedicationTracker
 
         role = get_user_role(user_id)
@@ -58,7 +58,7 @@ class HomeApp(HydraHeadApp):
             
             if authorized_patient_id:
                 # Show currently authorized patient info in a container
-                from data.patient_profile import get_patient_profile
+                from data.shared.patient_profile import get_patient_profile
                 current_patient = get_patient_profile(authorized_patient_id)
                 
                 if current_patient:
@@ -124,7 +124,7 @@ class HomeApp(HydraHeadApp):
                 with col2:
                     if st.button("🔐 Authorize Access", type="primary", use_container_width=True):
                         if search_id and search_dob:
-                            from data.patient_profile import get_patient_profile
+                            from data.shared.patient_profile import get_patient_profile
                             try:
                                 patient = get_patient_profile(int(search_id))
                                 if patient and str(patient.get('date_of_birth')) == search_dob:
