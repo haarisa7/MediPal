@@ -3,8 +3,12 @@ from datetime import datetime
 import html
 
 
-def render_medical_event_card(event, user_id, key_prefix=""):
+def render_medical_event_card(event, user_id, key_prefix="", current_user_id=None):
     """Render a single medical event card with consistent app styling."""
+    
+    # Check if current user is a clinician
+    from data.shared.patient_profile import get_user_role
+    is_clinician = get_user_role(current_user_id) == 1 if current_user_id else False
     
     # Determine status badge color and border
     status_config = {
@@ -74,22 +78,23 @@ def render_medical_event_card(event, user_id, key_prefix=""):
     # Render the card
     st.markdown(card_html, unsafe_allow_html=True)
     
-    # Action buttons
-    col1, col2, col3 = st.columns([1, 1, 4])
-    with col1:
-        if st.button("✏️ Edit", key=f"{key_prefix}edit_{event['event_id']}", use_container_width=True):
-            st.session_state['show_edit_event'] = True
-            st.session_state['edit_selected_event'] = event['event_id']
-            st.rerun()
-    with col2:
-        if st.button("🗑️ Delete", key=f"{key_prefix}delete_{event['event_id']}", use_container_width=True):
-            from data.medical_history.medical_events import delete_medical_event
-            if delete_medical_event(event['event_id'], user_id):
-                st.success("✅ Event deleted successfully!")
+    # Action buttons (only for patients, not clinicians)
+    if not is_clinician:
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            if st.button("✏️ Edit", key=f"{key_prefix}edit_{event['event_id']}", use_container_width=True):
+                st.session_state['show_edit_event'] = True
+                st.session_state['edit_selected_event'] = event['event_id']
                 st.rerun()
-            else:
-                # Error is stored in session state
-                st.rerun()
+        with col2:
+            if st.button("🗑️ Delete", key=f"{key_prefix}delete_{event['event_id']}", use_container_width=True):
+                from data.medical_history.medical_events import delete_medical_event
+                if delete_medical_event(event['event_id'], user_id):
+                    st.success("✅ Event deleted successfully!")
+                    st.rerun()
+                else:
+                    # Error is stored in session state
+                    st.rerun()
     
     # Spacing between cards
     st.write("")

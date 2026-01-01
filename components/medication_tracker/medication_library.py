@@ -4,7 +4,7 @@ from data.medication_tracker.patient_medications import (
     get_active_patient_medications,
     get_inactive_patient_medications
 )
-from data.medication_tracker.adherence_stats import get_overall_adherence_for_med_id
+from data.medication_tracker.adherence_stats import get_adherence_for_drug_and_user
 from components.medication_tracker.medication_card import render_medication_card
 from utils.medication_helpers import build_medication_dict
 
@@ -27,6 +27,6 @@ def show_medication_library(user_id):
 
     for med in meds:
         medication = build_medication_dict(med)
-        adherence_rate = get_overall_adherence_for_med_id(med['drug_id'])
+        adherence_rate = get_adherence_for_drug_and_user(med['drug_id'], user_id)
         active = med.get('status', 'active') == 'active'
         render_medication_card(medication, med['id'], status=None, context='library', adherence_rate=adherence_rate, active=active)

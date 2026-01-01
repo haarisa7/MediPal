@@ -66,6 +66,22 @@ def get_overall_adherence_for_med_id(med_id):
 		conn.close()
 
 
+def get_adherence_for_drug_and_user(drug_id, user_id):
+	"""Return adherence rate (0-100) for a specific drug for a specific user (across all timings)."""
+	conn = get_connection()
+	try:
+		with conn.cursor() as cur:
+			cur.execute('SELECT patient_med_id FROM patient_medications WHERE drug_id = %s AND user_id = %s', (drug_id, user_id))
+			patient_med_ids = [row[0] for row in cur.fetchall()]
+			if not patient_med_ids:
+				return None
+			
+			cur.execute('SELECT taken FROM medication_intake_log WHERE patient_med_id = ANY(%s)', (patient_med_ids,))
+			return _calculate_adherence_rate(cur.fetchall())
+	finally:
+		conn.close()
+
+
 def get_adherence_for_patient_med_id(patient_med_id):
 	"""Return adherence rate (0-100) for a specific patient_med_id."""
 	conn = get_connection()

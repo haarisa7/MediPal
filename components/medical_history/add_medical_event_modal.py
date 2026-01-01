@@ -189,7 +189,7 @@ def show_add_medical_event_overlay(user_id):
                     doctor_name=doctor or None,
                     status=status,
                     notes=notes or None,
-                    successful=successful
+                    success=successful
                 )
                 
                 if success:
