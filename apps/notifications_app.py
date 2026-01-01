@@ -1,8 +1,8 @@
 import streamlit as st
 from hydralit import HydraHeadApp
-from data.medication_requests import get_pending_requests_for_patient, respond_to_medication_request, process_accepted_request, get_all_requests_for_clinician
-from data.patient_profile import get_user_role
-from components.notification_card import render_notification_card
+from data.medication_tracker.medication_requests import get_pending_requests_for_patient, respond_to_medication_request, process_accepted_request, get_all_requests_for_clinician
+from data.shared.patient_profile import get_user_role
+from components.shared.notification_card import render_notification_card
 
 class NotificationsApp(HydraHeadApp):
     def __init__(self, title: str = 'Notifications', **kwargs):
@@ -37,7 +37,7 @@ class NotificationsApp(HydraHeadApp):
         # Get unread notes BEFORE marking as received (for patient view)
         unread_notes = {}
         if role != 1:  # Patient only
-            from data.side_effect_requests import get_all_notes_for_patient_reports
+            from data.side_effect_monitor.side_effect_requests import get_all_notes_for_patient_reports
             all_notes = get_all_notes_for_patient_reports(user_id)
             # Filter to only unread notes
             for report_id, notes in all_notes.items():
@@ -46,7 +46,7 @@ class NotificationsApp(HydraHeadApp):
                     unread_notes[report_id] = unread
             
             # Now mark all notes as received
-            from data.side_effect_requests import mark_all_notes_as_received
+            from data.side_effect_monitor.side_effect_requests import mark_all_notes_as_received
             mark_all_notes_as_received(user_id)
         
         if role == 1:
@@ -94,7 +94,7 @@ class NotificationsApp(HydraHeadApp):
         st.header('⚕️ Doctor Notes on Side Effects')
         
         if unread_notes:
-            from data.patient_side_effect import get_patient_side_effect_report_by_id
+            from data.side_effect_monitor.patient_side_effect import get_patient_side_effect_report_by_id
             for report_id, notes in unread_notes.items():
                 report = get_patient_side_effect_report_by_id(report_id)
                 if report:

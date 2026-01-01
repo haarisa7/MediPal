@@ -36,7 +36,7 @@ class AccountApp(HydraHeadApp):
         </div>
         """, unsafe_allow_html=True)
 
-        from data.patient_profile import get_patient_profile
+        from data.shared.patient_profile import get_patient_profile
         user_id = self._resolve_user_id()
         current_id_val = st.session_state.get('current_id')
         if not isinstance(current_id_val, int):

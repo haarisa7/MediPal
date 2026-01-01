@@ -1,7 +1,7 @@
 """Helper functions for medication tracking to reduce code duplication."""
 
 import streamlit as st
-from data.medications import get_drug_display_name
+from data.medication_tracker.medications import get_drug_display_name
 
 
 def build_medication_dict(med):
@@ -59,7 +59,7 @@ def render_info_box(title, items):
 
 def get_current_role():
     """Get the role of the current user."""
-    from data.patient_profile import get_user_role
+    from data.shared.patient_profile import get_user_role
     return get_user_role(st.session_state.get('current_id'))
 
 

@@ -2,8 +2,8 @@ import streamlit as st
 from hydralit import HydraHeadApp
 from datetime import datetime
 
-from data.patient_profile import get_patient_profile
-from components.side_effect_form import render_side_effect_report_form
+from data.shared.patient_profile import get_patient_profile
+from components.side_effect_monitor.side_effect_form import render_side_effect_report_form
 
 
 class SideEffects(HydraHeadApp):
@@ -23,7 +23,7 @@ class SideEffects(HydraHeadApp):
         return None
 
     def _resolve_patient_id(self):
-        from data.patient_profile import get_user_role
+        from data.shared.patient_profile import get_user_role
         user_id = st.session_state.get('current_id')
         role = get_user_role(user_id) if user_id else None
         if role == 1:
@@ -38,7 +38,7 @@ class SideEffects(HydraHeadApp):
         self.title = title
 
     def run(self) -> None:
-        from data.patient_profile import get_user_role
+        from data.shared.patient_profile import get_user_role
         
         user_id = st.session_state.get('current_id')
         role = get_user_role(user_id) if user_id else None
@@ -87,7 +87,7 @@ class SideEffects(HydraHeadApp):
         patient = get_patient_profile(patient_id)
         
         # Get real analytics from database
-        from data.patient_side_effect import get_patient_side_effect_analytics
+        from data.side_effect_monitor.patient_side_effect import get_patient_side_effect_analytics
         analytics = get_patient_side_effect_analytics(patient_id)
         total_reports = analytics['total_reports']
 
@@ -155,7 +155,7 @@ class SideEffects(HydraHeadApp):
 
         with col_main:
             # Main medication cards with enhanced side effect profiles using real data
-            from components.medication_side_effect import render_patient_side_effect_cards
+            from components.side_effect_monitor.medication_side_effect import render_patient_side_effect_cards
             render_patient_side_effect_cards(patient_id)
 
         with col_sidebar:
@@ -169,7 +169,7 @@ class SideEffects(HydraHeadApp):
             )
             
             # Get filtered reports
-            from data.patient_side_effect import (
+            from data.side_effect_monitor.patient_side_effect import (
                 get_patient_side_effect_reports,
                 get_active_patient_side_effect_reports,
                 get_resolved_patient_side_effect_reports,
@@ -186,7 +186,7 @@ class SideEffects(HydraHeadApp):
             # Display filtered reports
             if filtered_reports:
                 for report in filtered_reports:
-                    from components.side_effect_report import render_side_effect_report_card
+                    from components.side_effect_monitor.side_effect_report import render_side_effect_report_card
                     render_side_effect_report_card(report, show_doctor_notes=True)
                     
                     # Add resolve button if not resolved
@@ -250,5 +250,5 @@ class SideEffects(HydraHeadApp):
     
     def _render_clinician_view(self, patient_id, clinician_id):
         """Render the clinician view showing patient's side effect reports as notifications."""
-        from components.clinician_side_effect import render_clinician_side_effect_view
+        from components.side_effect_monitor.clinician_side_effect import render_clinician_side_effect_view
         render_clinician_side_effect_view(patient_id, clinician_id)

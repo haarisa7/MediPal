@@ -1,7 +1,7 @@
 import streamlit as st
 from hydralit import HydraHeadApp
 from datetime import date, datetime
-from data.patient_medications import (
+from data.medication_tracker.patient_medications import (
     insert_patient_medication,
     get_daily_patient_medications,
     get_all_patient_medications,
@@ -9,17 +9,17 @@ from data.patient_medications import (
     get_inactive_patient_medications
 )
 
-from components.medication_card import render_medication_card
-from data.patient_profile import get_patient_profile
-from data.medication_log import log_missed_intakes_for_day, get_today_intake_status
-from data.adherence_stats import (
+from components.medication_tracker.medication_card import render_medication_card
+from data.shared.patient_profile import get_patient_profile
+from data.medication_tracker.medication_log import log_missed_intakes_for_day, get_today_intake_status
+from data.medication_tracker.adherence_stats import (
     get_today_summary_for_user,
     get_total_adherence_for_user,
     get_adherence_for_patient_med_id,
     get_overall_adherence_for_med_id
 )
-from components.medication_library import show_medication_library
-from components.daily_schedule import render_daily_medication_schedule
+from components.medication_tracker.medication_library import show_medication_library
+from components.medication_tracker.daily_schedule import render_daily_medication_schedule
 
 class MedicationTracker(HydraHeadApp):
     def _resolve_user_id(self):
@@ -38,7 +38,7 @@ class MedicationTracker(HydraHeadApp):
         return None
 
     def _resolve_patient_id(self):
-        from data.patient_profile import get_user_role
+        from data.shared.patient_profile import get_user_role
         user_id = st.session_state.get('current_id')
         role = get_user_role(user_id) if user_id else None
         if role == 1:
@@ -65,7 +65,7 @@ class MedicationTracker(HydraHeadApp):
             st.session_state['db_insert_error'] = None
 
         # --- Edit medication UI (overlay component) ---
-        from components.edit_medication import show_edit_medication_overlay
+        from components.medication_tracker.edit_medication import show_edit_medication_overlay
         if st.session_state.get('show_edit_med'):
             show_edit_medication_overlay(patient_id)
             return
@@ -79,17 +79,23 @@ class MedicationTracker(HydraHeadApp):
             pass
 
         # --- Add/Edit medication buttons in header ---
-        from components.add_medication_modal import show_add_medication_overlay
+        from components.medication_tracker.add_medication_modal import show_add_medication_overlay
+        from data.shared.patient_profile import get_user_role
+        
+        user_id = self._resolve_user_id()
+        is_clinician = get_user_role(user_id) == 1 if user_id else False
         
         col_title, col_btn1, col_btn2 = st.columns([2.5, 1, 1])
         with col_title:
             st.title("💊 Medication Tracker")
         with col_btn1:
-            if st.button('➕ Add Medication', key='add_med_btn', use_container_width=True):
+            btn_text = '📤 Send Add Request' if is_clinician else '➕ Add Medication'
+            if st.button(btn_text, key='add_med_btn', use_container_width=True):
                 st.session_state['show_add_med'] = True
                 st.rerun()
         with col_btn2:
-            if st.button('✏️ Edit Medication', key='edit_med_btn', use_container_width=True):
+            btn_text = '📤 Send Edit Request' if is_clinician else '✏️ Edit Medication'
+            if st.button(btn_text, key='edit_med_btn', use_container_width=True):
                 st.session_state['show_edit_med'] = True
                 st.rerun()
         
@@ -146,8 +152,7 @@ class MedicationTracker(HydraHeadApp):
             st.markdown(render_stat_card(overdue, 'Overdue', color), unsafe_allow_html=True)
 
         with col3:
-            user_id = self._resolve_user_id()
-            total_adherence = get_total_adherence_for_user(user_id)
+            total_adherence = get_total_adherence_for_user(patient_id)
             adherence_val = f"{total_adherence if total_adherence is not None else '--'}%"
             color = '#10b981' if (total_adherence or 0) >= 80 else '#f59e0b' if (total_adherence or 0) >= 60 else '#dc2626'
             st.markdown(render_stat_card(adherence_val, 'Total Patient Adherence', color), unsafe_allow_html=True)
