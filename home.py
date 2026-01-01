@@ -30,16 +30,16 @@ if __name__ == "__main__":
     notification_count = 0
     logged_in = st.session_state.get('logged_in', False)
     if logged_in:
-        from data.patient_profile import get_user_role
+        from data.shared.patient_profile import get_user_role
         user_id = st.session_state.get('current_id')
         role = get_user_role(user_id) if user_id else None
         
         if role == 0:  # Patient
-            from data.medication_requests import get_pending_requests_for_patient
+            from data.medication_tracker.medication_requests import get_pending_requests_for_patient
             med_request_count = len(get_pending_requests_for_patient(user_id))
             
             # Check for unread doctor notes
-            from data.side_effect_requests import get_unread_doctor_notes_for_patient
+            from data.side_effect_monitor.side_effect_requests import get_unread_doctor_notes_for_patient
             unread_notes_count = get_unread_doctor_notes_for_patient(user_id)
             
             # Total notification count includes both medication requests and unread notes
@@ -57,7 +57,7 @@ if __name__ == "__main__":
             # Check for new side effect reports from authorized patient
             patient_id = st.session_state.get('authorized_patient_id')
             if patient_id:
-                from data.patient_side_effect import get_side_effect_reports_count
+                from data.side_effect_monitor.patient_side_effect import get_side_effect_reports_count
                 side_effect_count = get_side_effect_reports_count(patient_id)
                 last_seen_se = st.session_state.get('last_seen_side_effect_count', 0)
                 if side_effect_count > last_seen_se:

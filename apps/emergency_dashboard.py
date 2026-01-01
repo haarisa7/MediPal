@@ -1,6 +1,6 @@
 import streamlit as st
 from hydralit import HydraHeadApp
-from data.patient_profile import get_patient_profile, get_user_role
+from data.shared.patient_profile import get_patient_profile, get_user_role
 
 
 class EmergencyDashboard(HydraHeadApp):
@@ -52,7 +52,7 @@ class EmergencyDashboard(HydraHeadApp):
             return
 
         # Emergency header
-        from components.emergency_header import render_emergency_header
+        from components.emergency_dashboard.emergency_header import render_emergency_header
         info_complete = render_emergency_header(profile, patient_id)
         
         # Only show rest of dashboard if patient info is complete
@@ -66,9 +66,9 @@ class EmergencyDashboard(HydraHeadApp):
 
         with col1:
             st.markdown("### 💊 Current Medications")
-            from data.patient_medications import get_active_patient_medications
-            from data.medications import get_drug_display_name
-            from components.medication_card import _get_medication_icon
+            from data.medication_tracker.patient_medications import get_active_patient_medications
+            from data.medication_tracker.medications import get_drug_display_name
+            from components.medication_tracker.medication_card import _get_medication_icon
             meds = get_active_patient_medications(patient_id)
             if meds:
                 for med in meds:
@@ -99,15 +99,15 @@ class EmergencyDashboard(HydraHeadApp):
 
             st.markdown("---")
             st.markdown("### 🚨 Medical Alerts & Allergies")
-            from components.allergy_card import render_allergy_cards
+            from components.medical_history.allergy_card import render_allergy_cards
             render_allergy_cards(patient_id, is_clinician)
 
         with col2:
             st.markdown("### 🏥 Medical Conditions")
-            from components.condition_card import render_condition_cards
+            from components.medical_history.condition_card import render_condition_cards
             render_condition_cards(patient_id, is_clinician)
 
             st.markdown("---")
             st.markdown("### 📞 Emergency Contacts")
-            from components.emergency_contact_card import render_emergency_contact_cards
+            from components.emergency_dashboard.emergency_contact_card import render_emergency_contact_cards
             render_emergency_contact_cards(patient_id, is_clinician)
