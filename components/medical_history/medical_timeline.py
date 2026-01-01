@@ -3,8 +3,12 @@ from datetime import datetime
 from collections import defaultdict
 
 
-def render_medical_timeline(user_id):
+def render_medical_timeline(user_id, current_user_id=None):
     """Render the medical timeline with events grouped by year and month."""
+    
+    # Check if current user is a clinician
+    from data.shared.patient_profile import get_user_role
+    is_clinician = get_user_role(current_user_id) == 1 if current_user_id else False
     
     # Header section
     st.markdown("## 📊 Medical Timeline")
@@ -85,14 +89,15 @@ def render_medical_timeline(user_id):
                 
                 # Render each event
                 for event in events_by_year[year][month]:
-                    render_medical_event_card(event, user_id, key_prefix="timeline_")
+                    render_medical_event_card(event, user_id, key_prefix="timeline_", current_user_id=current_user_id)
                     st.write("")  # Spacing between cards
     
-    # Add new event button
-    st.markdown("---")
-    if st.button("➕ Add New Medical Event", type="primary", use_container_width=True):
-        st.session_state['show_add_event_form'] = True
-        st.rerun()
+    # Add new event button (only for patients)
+    if not is_clinician:
+        st.markdown("---")
+        if st.button("➕ Add New Medical Event", type="primary", use_container_width=True):
+            st.session_state['show_add_event_form'] = True
+            st.rerun()
     
     # Add bottom padding
     st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)

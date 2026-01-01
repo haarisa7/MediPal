@@ -9,7 +9,9 @@ def _build_request_dict(row, include_patient_name=False, include_clinician_name=
     """Build a standardized request dictionary from a database row."""
     request = {
         'request_id': row[0],
+        'patient_id': row[1],  # Always include patient_id
         'drug_name': get_drug_display_name(row[2]) if len(row) > 2 else None,
+        'drug_id': row[2] if len(row) > 2 else None,  # Also include drug_id
         'dose': row[3],
         'instructions': row[4],
         'timing': row[5] if len(row) > 5 else None,
@@ -26,7 +28,6 @@ def _build_request_dict(row, include_patient_name=False, include_clinician_name=
     # Add patient name if included
     if include_patient_name and len(row) > 13:
         request['patient_name'] = f"{row[12]} {row[13]}"
-        request['patient_id'] = row[1]
     
     # Add status fields if present
     if len(row) > 15:
@@ -127,7 +128,7 @@ def process_accepted_request(request_id):
     if details['request_type'] == 'add':
         from data.medication_tracker.patient_medications import insert_patient_medication
         return insert_patient_medication(
-            details['patient_med_id'], details['drug_name'], details['dose'], details['instructions'],
+            details['patient_id'], details['drug_id'], details['dose'], details['instructions'],
             details['start_date'], details['end_date'], details['prescribed_by'], details['timing']
         )
     elif details['request_type'] == 'edit':

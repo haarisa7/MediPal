@@ -1,6 +1,7 @@
 import streamlit as st
 from data.medication_tracker.patient_medications import (
-    get_daily_patient_medications
+    get_daily_patient_medications,
+    get_active_patient_medications
 )
 from data.medication_tracker.medications import get_drug_display_name
 

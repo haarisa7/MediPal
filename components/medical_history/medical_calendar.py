@@ -4,8 +4,12 @@ from calendar import monthrange
 import html
 
 
-def render_medical_calendar(user_id):
+def render_medical_calendar(user_id, current_user_id=None):
     """Render calendar view of medical events."""
+    
+    # Check if current user is a clinician
+    from data.shared.patient_profile import get_user_role
+    is_clinician = get_user_role(current_user_id) == 1 if current_user_id else False
     
     # Get current date
     today = date.today()
@@ -175,7 +179,7 @@ def render_medical_calendar(user_id):
             # Render event cards
             from components.medical_history.medical_event_card import render_medical_event_card
             for event in events:
-                render_medical_event_card(event, user_id, key_prefix=f"calendar_day_{day}_")
+                render_medical_event_card(event, user_id, key_prefix=f"calendar_day_{day}_", current_user_id=current_user_id)
             
             break
     

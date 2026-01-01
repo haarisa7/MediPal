@@ -73,8 +73,11 @@ class MedicalHistoryApp(HydraHeadApp):
         view_tab1, view_tab2 = st.tabs(["📅 Timeline View", "📆 Calendar View"])
         
         with view_tab1:
-            render_medical_timeline(patient_id)
+            # Pass current user's ID to check if clinician
+            current_user_id = st.session_state.get('current_id')
+            render_medical_timeline(patient_id, current_user_id)
         
         with view_tab2:
             from components.medical_history.medical_calendar import render_medical_calendar
-            render_medical_calendar(patient_id)
+            current_user_id = st.session_state.get('current_id')
+            render_medical_calendar(patient_id, current_user_id)
